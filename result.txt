@@ -1,0 +1,202 @@
+package tools;
+
+import java.io.File;
+import java.util.*;
+
+public class CustomSorter {
+
+    private CustomSorter() {}
+
+    public static List<String> sortByNames(List<String> list) {
+        list.sort((a, b) -> {
+            String name1 = a.substring(a.lastIndexOf(File.separator) + 1);
+            String name2 = b.substring(b.lastIndexOf(File.separator) + 1);
+            return name1.compareTo(name2);
+        });
+        return list;
+    }
+
+    public static Set<String> sortByIncludeOrder(List<String> list, Map<String, List<String>> dependencies) {
+        Set<String> result = new LinkedHashSet<>();
+        while (!list.isEmpty()) {
+            String curFile = list.removeFirst();
+            Set<String> order = new LinkedHashSet<>();
+            dfs(curFile, order, dependencies, result);
+        }
+        return result;
+    }
+
+    private static void dfs(String cur, Set<String> order, Map<String, List<String>> deps, Set<String> result) {
+        if (order.contains(cur)) {
+            String cycle = String.format("%s->%s", String.join("->", order), cur);
+            throw new RuntimeException("Found cycle: " + cycle);
+        }
+
+        order.add(cur);
+        if (deps.get(cur) != null && !deps.get(cur).isEmpty()) {  // first condition for cases when pointing to non-existing file
+            deps.get(cur)
+                    .forEach(s -> dfs(s, order, deps, result));
+
+        }
+        order.remove(cur);
+        result.add(cur);
+    }
+}
+
+Phasellus eget tellus ac risus iaculis feugiat nec in eros.
+Aenean in luctus ante. In lacinia lectus tempus, rutrum ipsum quis,
+gravida nunc. Fusce tempor eleifend libero at pharetra. Nulla lacinia
+ante ac felis malesuada auctor. Vestibulum eget congue sapien, ac
+euismod elit. Fusce nisl ante, consequat et imperdiet vel, semper et neque.
+
+require 'folder2/File21'
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Suspendisse id enim euismod erat elementum cursus.
+In hac habitasse platea dictumst. Etiam vitae tortor ipsum.
+ Morbi massa augue, lacinia sed nisl id, congue eleifend
+ lorem.Praesent feugiat egestas sem,
+ id luctus lectus dignissim ac. Donec elementum rhoncus quam,
+ vitae viverra massa euismod a. Morbi dictum sapien sed porta tristique.
+  Donec varius convallis quam in fringilla.
+require 'folder1/File11'
+require 'folder2/File21'
+In pretium dictum lacinia. In rutrum, neque a dignissim maximus,
+dolor mi pretium ante, nec volutpat justo dolor non nulla.
+Vivamus nec suscipit nisl, ornare luctus erat.
+Aliquam eget est orci. Proin orci urna, elementum a nunc ac,
+fermentum varius eros. Mauris id massa elit.
+package tools;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class FileVisitorImpl implements FileVisitor<Path> {
+
+    private final String rootPath;
+    private final String regex = "require '[\\w\\s-/\\\\]+'";;
+    private final Pattern pattern = Pattern.compile(regex);
+    private final Map<String, List<String>> dependencies = new HashMap<>();
+
+    private final List<String> files = new ArrayList<>();
+
+    private final Map<String, String> filesFullNames = new HashMap<>();
+
+    public Map<String, String> getFilesFullNames() {
+        return filesFullNames;
+    }
+
+    public List<String> getFiles() {
+        return this.files;
+    }
+
+    public Map<String, List<String>> getDependencies() {
+        return dependencies;
+    }
+
+    public FileVisitorImpl(String rootPath) {
+        Path rootDir = Paths.get(rootPath);
+        this.rootPath = rootDir.toAbsolutePath().toString();
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+        return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        if (!"text/plain".equals(Files.probeContentType(file))) {
+            return FileVisitResult.CONTINUE;
+        }
+        String absPath = String.valueOf(file.toAbsolutePath());
+        String fileRelativeNameWithExt = absPath.substring(rootPath.length() + 1);
+        String fileRelativeName = fileRelativeNameWithExt.substring(0, fileRelativeNameWithExt.lastIndexOf("."));
+        files.add(fileRelativeName);
+        filesFullNames.put(fileRelativeName, fileRelativeNameWithExt);
+        String content = Files.readString(file);
+        Matcher matcher = pattern.matcher(content);
+        dependencies.put(fileRelativeName, new LinkedList<>());
+        String dep;
+        while (matcher.find()) {
+            dep = content.substring(matcher.start() + 9, matcher.end() - 1);  // removing "require '" and "'"
+            dep = dep.replace('/', File.separatorChar);
+            dep = dep.replace('\\', File.separatorChar);
+            dependencies
+                    .get(fileRelativeName)
+                    .add(dep);
+        }
+        return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+        return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        return FileVisitResult.CONTINUE;
+    }
+}
+package tools;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.*;
+import java.util.Collection;
+import java.util.Map;
+
+public class FilesConcatenate {
+
+    public static void concatenate(Collection<String> fileNames, Map<String, String> fileFullNames, String resFileName, String rootPath) {
+        try (PrintWriter writer = new PrintWriter(resFileName)) {
+            fileNames.forEach(f -> {
+                String fname = fileFullNames.get(f);
+                try {
+                    if (fname == null) return;
+                    String content = Files.readString(Paths.get(String.format("%s/%s", rootPath, fname)));
+                    writer.println(content);
+                } catch (NoSuchFileException | InvalidPathException e) {
+                    System.out.printf("Couldn't open the file %s. %s.%n", fname, e.getMessage());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+import tools.CustomSorter;
+import tools.FileVisitorImpl;
+import tools.FilesConcatenate;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        String rootPath = "./src";
+        Path rootDir = Paths.get(rootPath);
+
+        FileVisitorImpl fileVisitor = new FileVisitorImpl(rootPath);
+        Files.walkFileTree(rootDir, fileVisitor);
+
+        Map<String, List<String>> dependencies = fileVisitor.getDependencies();
+        List<String> files = CustomSorter.sortByNames(fileVisitor.getFiles());
+        Set<String> sorted = CustomSorter.sortByIncludeOrder(files, dependencies);
+        FilesConcatenate.concatenate(sorted, fileVisitor.getFilesFullNames(), "result.txt", rootPath);
+
+    }
+}
+
+
