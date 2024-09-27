@@ -9,7 +9,10 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        String rootPath = "./src";
+        String rootPath = ".";
+        if (args.length == 1) {
+            rootPath = args[0];
+        }
         Path rootDir = Paths.get(rootPath);
 
         FileVisitorImpl fileVisitor = new FileVisitorImpl(rootPath);
