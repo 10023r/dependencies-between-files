@@ -19,9 +19,10 @@ public class Main {
         Files.walkFileTree(rootDir, fileVisitor);
 
         Map<String, List<String>> dependencies = fileVisitor.getDependencies();
-        List<String> files = CustomSorter.sortByNames(fileVisitor.getFiles());
-        Set<String> sorted = CustomSorter.sortByIncludeOrder(files, dependencies);
-        FilesConcatenate.concatenate(sorted, fileVisitor.getFilesFullNames(), "result.txt", rootPath);
+        List<String> sortedByNames = CustomSorter.sortByNames(fileVisitor.getFiles());
+        FilesConcatenate.concatenate(sortedByNames, fileVisitor.getFilesFullNames(), "result1.txt", rootPath);
+        Set<String> sortedByIncludeOrder = CustomSorter.sortByIncludeOrder(sortedByNames, dependencies);
+        FilesConcatenate.concatenate(sortedByIncludeOrder, fileVisitor.getFilesFullNames(), "result2.txt", rootPath);
 
     }
 }
