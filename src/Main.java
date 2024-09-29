@@ -20,8 +20,10 @@ public class Main {
 
         Map<String, List<String>> dependencies = fileVisitor.getDependencies();
         List<String> sortedByNames = CustomSorter.sortByNames(fileVisitor.getFiles());
+        System.out.println("Sorted by names: " + sortedByNames);
         FilesConcatenate.concatenate(sortedByNames, fileVisitor.getFilesFullNames(), "result1.txt", rootPath);
         Set<String> sortedByIncludeOrder = CustomSorter.sortByIncludeOrder(sortedByNames, dependencies);
+        System.out.println("Sorted by include order: " + sortedByIncludeOrder);
         FilesConcatenate.concatenate(sortedByIncludeOrder, fileVisitor.getFilesFullNames(), "result2.txt", rootPath);
 
     }
